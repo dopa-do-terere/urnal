@@ -6,9 +6,9 @@ from xml.etree.ElementTree import Element
 
 from defusedxml import ElementTree as SafeET
 
-from app.config import only_digits
-from app.money import MoneyError, to_cents
-from app.parsers import digit_windows
+from financas_core.text import only_digits
+from financas_core.money import MoneyError, to_cents
+from financas_core.parsers import digit_windows
 
 PAYMENT_METHODS = {
     "01": "Dinheiro",

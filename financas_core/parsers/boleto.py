@@ -12,7 +12,7 @@ se a linha estiver íntegra.
 from dataclasses import dataclass
 from datetime import date, timedelta
 
-from app.parsers import digit_windows
+from financas_core.parsers import digit_windows
 
 BANKS = {
     "001": "Banco do Brasil",

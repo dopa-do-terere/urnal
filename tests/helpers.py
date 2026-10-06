@@ -1,6 +1,6 @@
 from datetime import date
 
-from app.parsers.boleto import _BASE_NEW, _bancario_barcode_to_line, _mod10, _mod11_arrecadacao, _mod11_bancario
+from financas_core.parsers.boleto import _BASE_NEW, _bancario_barcode_to_line, _mod10, _mod11_arrecadacao, _mod11_bancario
 
 
 def make_bancario_line(amount_cents: int, due: date, bank: str = "341", free: str = "1" * 25) -> str:

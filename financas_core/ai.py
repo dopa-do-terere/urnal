@@ -3,12 +3,12 @@
 import base64
 import json
 import logging
+from dataclasses import dataclass
 from datetime import date
 
 import httpx
 
-from app.config import settings
-from app.services.categories import EXPENSE_CATEGORIES, INCOME_CATEGORIES
+from financas_core.categories import EXPENSE_CATEGORIES, INCOME_CATEGORIES
 
 log = logging.getLogger(__name__)
 
@@ -67,10 +67,6 @@ relativas a partir da data de hoje e preencha o que for possível.
 """
 
 
-def is_configured() -> bool:
-    return bool(settings.openrouter_api_key)
-
-
 def text_part(text: str) -> dict:
     return {"type": "text", "text": text}
 
@@ -88,8 +84,20 @@ def pdf_part(content: bytes, filename: str) -> dict:
     }
 
 
-def _context_text(hint: str | None) -> str:
-    owner = ", ".join(sorted(settings.owner_documents)) or "não informados"
+DEFAULT_MODEL = "google/gemini-2.5-flash"
+DEFAULT_BASE_URL = "https://openrouter.ai/api/v1"
+
+
+@dataclass(frozen=True)
+class AIConfig:
+    api_key: str
+    model: str = DEFAULT_MODEL
+    base_url: str = DEFAULT_BASE_URL
+    timeout: float = 120
+
+
+def _context_text(hint: str | None, owner_documents: frozenset[str]) -> str:
+    owner = ", ".join(sorted(owner_documents)) or "não informados"
     lines = [
         f"Data de hoje: {date.today().isoformat()}.",
         f"CPF/CNPJ do usuário: {owner}. Se o usuário for quem recebe o dinheiro, kind = income.",
@@ -119,43 +127,50 @@ def _parse_json(content: str) -> dict:
     return data
 
 
-def extract(parts: list[dict], hint: str | None = None) -> dict:
-    """Envia o conteúdo para o modelo e devolve o JSON extraído."""
-    if not is_configured():
-        raise AIError("OPENROUTER_API_KEY não configurada")
+class OpenRouterClient:
+    """Implementa o protocolo `Extractor` usado por financas_core.extraction."""
 
-    payload = {
-        "model": settings.openrouter_model,
-        "temperature": 0,
-        "response_format": {"type": "json_object"},
-        "messages": [
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": [text_part(_context_text(hint)), *parts]},
-        ],
-    }
-    headers = {
-        "Authorization": f"Bearer {settings.openrouter_api_key}",
-        "X-Title": "Assistente de Finanças",
-    }
-    try:
-        response = httpx.post(
-            f"{settings.openrouter_base_url}/chat/completions",
-            json=payload,
-            headers=headers,
-            timeout=120,
-        )
-    except httpx.HTTPError as exc:
-        raise AIError(f"falha ao chamar a OpenRouter: {exc}") from exc
-    if response.status_code >= 400:
-        raise AIError(f"OpenRouter respondeu {response.status_code}: {response.text[:500]}")
+    def __init__(self, config: AIConfig):
+        if not config.api_key:
+            raise AIError("OPENROUTER_API_KEY não configurada")
+        self.config = config
 
-    try:
-        message = response.json()["choices"][0]["message"]
-    except (ValueError, KeyError, IndexError) as exc:
-        raise AIError("resposta inesperada da OpenRouter") from exc
-    content = message.get("content")
-    if isinstance(content, list):  # alguns provedores devolvem partes
-        content = "".join(p.get("text", "") for p in content if isinstance(p, dict))
-    if not content:
-        raise AIError("a IA devolveu uma resposta vazia")
-    return _parse_json(content)
+    def extract(
+        self, parts: list[dict], hint: str | None = None, owner_documents: frozenset[str] = frozenset()
+    ) -> dict:
+        """Envia o conteúdo para o modelo e devolve o JSON extraído."""
+        payload = {
+            "model": self.config.model,
+            "temperature": 0,
+            "response_format": {"type": "json_object"},
+            "messages": [
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": [text_part(_context_text(hint, owner_documents)), *parts]},
+            ],
+        }
+        headers = {
+            "Authorization": f"Bearer {self.config.api_key}",
+            "X-Title": "Assistente de Finanças",
+        }
+        try:
+            response = httpx.post(
+                f"{self.config.base_url.rstrip('/')}/chat/completions",
+                json=payload,
+                headers=headers,
+                timeout=self.config.timeout,
+            )
+        except httpx.HTTPError as exc:
+            raise AIError(f"falha ao chamar a OpenRouter: {exc}") from exc
+        if response.status_code >= 400:
+            raise AIError(f"OpenRouter respondeu {response.status_code}: {response.text[:500]}")
+
+        try:
+            message = response.json()["choices"][0]["message"]
+        except (ValueError, KeyError, IndexError) as exc:
+            raise AIError("resposta inesperada da OpenRouter") from exc
+        content = message.get("content")
+        if isinstance(content, list):  # alguns provedores devolvem partes
+            content = "".join(p.get("text", "") for p in content if isinstance(p, dict))
+        if not content:
+            raise AIError("a IA devolveu uma resposta vazia")
+        return _parse_json(content)

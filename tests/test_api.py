@@ -2,8 +2,8 @@ from datetime import date
 
 import pytest
 
-from app.ai import openrouter
 from app.config import settings
+from app.services import ingest
 from tests.helpers import make_access_key, make_bancario_line, make_nfe_xml
 
 
@@ -13,12 +13,12 @@ def fake_ai(monkeypatch):
     calls = []
     response = {"document_type": "mensagem", "transactions": []}
 
-    def fake_extract(parts, hint=None):
-        calls.append(parts)
-        return response
+    class FakeAI:
+        def extract(self, parts, hint=None, owner_documents=frozenset()):
+            calls.append(parts)
+            return response
 
-    monkeypatch.setattr(openrouter, "is_configured", lambda: True)
-    monkeypatch.setattr(openrouter, "extract", fake_extract)
+    monkeypatch.setattr(ingest, "get_ai", lambda: FakeAI())
     return response, calls
 
 

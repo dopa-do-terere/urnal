@@ -2,9 +2,9 @@ from datetime import date
 
 import pytest
 
-from app.money import MoneyError, to_cents
-from app.parsers.boleto import BoletoError, due_date_from_factor, find_boleto, parse_boleto
-from app.parsers.nfe import NFeError, access_key_is_valid, find_access_key, parse_nfe_xml
+from financas_core.money import MoneyError, to_cents
+from financas_core.parsers.boleto import BoletoError, due_date_from_factor, find_boleto, parse_boleto
+from financas_core.parsers.nfe import NFeError, access_key_is_valid, find_access_key, parse_nfe_xml
 from tests.helpers import make_access_key, make_arrecadacao_line, make_bancario_line, make_nfe_xml
 
 

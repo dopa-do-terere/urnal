@@ -1,0 +1,21 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "transactions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "needs_review", "order": "ASCENDING" },
+        { "fieldPath": "occurred_on", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "transactions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "occurred_on", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

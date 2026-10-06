@@ -12,11 +12,10 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
-from app.ai import openrouter
 from app.config import settings
 from app.db import get_db, init_db
 from app.models import Document, Transaction
-from app.money import MoneyError, cents_to_decimal, to_cents
+from financas_core.money import MoneyError, cents_to_decimal, to_cents
 from app.schemas import (
     CategoryTotal,
     DocumentOut,
@@ -28,8 +27,8 @@ from app.schemas import (
     TransactionOut,
     TransactionUpdate,
 )
-from app.services.categories import EXPENSE_CATEGORIES, INCOME_CATEGORIES, resolve_category
-from app.services.ingest import IngestError, IngestOutcome, ingest_file, ingest_text
+from financas_core.categories import EXPENSE_CATEGORIES, INCOME_CATEGORIES, resolve_category
+from app.services.ingest import IngestError, IngestOutcome, get_ai, ingest_file, ingest_text
 
 logging.basicConfig(level=logging.INFO)
 STATIC_DIR = Path(__file__).parent / "static"
@@ -97,8 +96,8 @@ def index():
 def health():
     return {
         "ok": True,
-        "ai_configured": openrouter.is_configured(),
-        "model": settings.openrouter_model if openrouter.is_configured() else None,
+        "ai_configured": get_ai() is not None,
+        "model": settings.openrouter_model if get_ai() is not None else None,
     }
 
 

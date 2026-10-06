@@ -1,0 +1,13 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // O app envia o arquivo para cá e chama a função ingest_file com o caminho.
+    match /users/{uid}/uploads/{fileName} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow create: if request.auth != null && request.auth.uid == uid
+        && request.resource.size < 20 * 1024 * 1024;
+      allow update, delete: if false;
+    }
+  }
+}

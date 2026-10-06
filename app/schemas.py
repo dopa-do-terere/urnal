@@ -4,11 +4,11 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, computed_field
 
-from app.money import cents_to_decimal
+from financas_core.money import cents_to_decimal
 
 Kind = Literal["expense", "income"]
 Status = Literal["paid", "pending"]
-# Aceita 123.45, "123,45", "R$ 1.234,56"; convertido com app.money.to_cents.
+# Aceita 123.45, "123,45", "R$ 1.234,56"; convertido com financas_core.money.to_cents.
 MoneyInput = Decimal | float | int | str
 
 
